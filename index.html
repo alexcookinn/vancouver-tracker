@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vancouver R16 Tracker — Will Portugal play my game?</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main>
+    <header class="hero">
+      <div class="hero-tag">Match 96 · Round of 16 · BC Place, Vancouver · Tue Jul 7, 2026</div>
+      <h1>Will <span class="accent">Portugal</span> be in my game?</h1>
+      <div class="headline">
+        <div class="big-pct" id="headlinePct">—</div>
+        <div class="big-label">chance Portugal reaches your Vancouver seat</div>
+      </div>
+      <div class="status-bar">
+        <span id="dataSource" class="chip">loading…</span>
+        <span id="lastUpdated" class="chip subtle"></span>
+        <button id="refreshBtn" class="btn">↻ Refresh live data</button>
+        <button id="editBtn" class="btn ghost">✎ Edit results</button>
+      </div>
+    </header>
+
+    <!-- What needs to happen -->
+    <section class="card scenario">
+      <h2>What needs to happen</h2>
+      <ol id="scenarioList">
+        <li>Loading…</li>
+      </ol>
+      <p class="note" id="scenarioNote"></p>
+    </section>
+
+    <!-- Bracket -->
+    <section class="card">
+      <h2>The two paths into your game</h2>
+      <div class="bracket">
+        <div class="side">
+          <div class="side-title">Portugal's side <span class="muted">· Group K → KC (Jul 3) → Vancouver</span></div>
+          <div id="yourSide" class="prob-list"></div>
+        </div>
+
+        <div class="match-node">
+          <div class="vs-line"></div>
+          <div class="match-box">
+            <div class="match-title">MATCH 96</div>
+            <div class="match-sub">Vancouver · Jul 7</div>
+            <div class="match-icon">🏟️</div>
+          </div>
+          <div class="vs-line"></div>
+        </div>
+
+        <div class="side">
+          <div class="side-title">Opponent's side <span class="muted">· Group B → Vancouver (Jul 2) → Vancouver</span></div>
+          <div id="opponentSide" class="prob-list"></div>
+        </div>
+      </div>
+      <p class="note" id="spoilerNote"></p>
+    </section>
+
+    <!-- Live standings -->
+    <section class="grid2">
+      <div class="card">
+        <h2>Group K <span class="muted">— live standings</span></h2>
+        <div id="groupKTable" class="standings"></div>
+      </div>
+      <div class="card">
+        <h2>Group B <span class="muted">— live standings</span></h2>
+        <div id="groupBTable" class="standings"></div>
+      </div>
+    </section>
+
+    <!-- Edit panel (hidden by default) -->
+    <section id="editPanel" class="card hidden">
+      <h2>Edit / enter results</h2>
+      <p class="note">Type a score for any game and hit <b>Apply</b>. Manual entries override live data. Leave blank to let the simulator predict it.</p>
+      <div class="grid2">
+        <div><h3>Group K</h3><div id="editK" class="edit-games"></div></div>
+        <div><h3>Group B</h3><div id="editB" class="edit-games"></div></div>
+      </div>
+      <button id="applyEdits" class="btn">Apply & re-run</button>
+    </section>
+
+    <footer>
+      <p class="note">
+        Probabilities from a Monte Carlo simulation (<span id="simN">—</span> runs) using
+        approximate Elo ratings — they're an informed estimate, not a guarantee.
+        Bracket routing is verified for WC2026: the Group K <b>winner</b> goes to Kansas City (Match 87),
+        and only that winner can reach your Vancouver game. The Group K runner-up goes to Toronto → Dallas instead.
+        Edit team ratings, rosters, or results in <code>data.js</code>.
+      </p>
+    </footer>
+  </main>
+
+  <script src="data.js"></script>
+  <script src="sim.js"></script>
+  <script src="api.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
