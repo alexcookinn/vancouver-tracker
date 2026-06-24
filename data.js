@@ -119,6 +119,7 @@ let RESULTS = [
   { group: "K", home: "Portugal", away: "DR Congo", hg: 1, ag: 1 },
   { group: "K", home: "Colombia", away: "Uzbekistan", hg: 3, ag: 1 },
   { group: "K", home: "Portugal", away: "Uzbekistan", hg: 5, ag: 0 },
+  { group: "K", home: "Colombia", away: "DR Congo", hg: 1, ag: 0 },
   // Group L
   { group: "L", home: "England", away: "Croatia", hg: 4, ag: 2 },
   { group: "L", home: "Ghana", away: "Panama", hg: 1, ag: 0 },
