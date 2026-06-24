@@ -85,6 +85,7 @@ let RESULTS = [
   { group: "B", home: "Qatar", away: "Switzerland", hg: 1, ag: 1 },
   { group: "B", home: "Switzerland", away: "Bosnia & Herzegovina", hg: 4, ag: 1 },
   { group: "B", home: "Canada", away: "Qatar", hg: 6, ag: 0 },
+  { group: "B", home: "Switzerland", away: "Canada", hg: 2, ag: 1 },
   // Group C
   { group: "C", home: "Brazil", away: "Morocco", hg: 1, ag: 1 },
   { group: "C", home: "Scotland", away: "Haiti", hg: 1, ag: 0 },
