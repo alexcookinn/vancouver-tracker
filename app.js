@@ -1,5 +1,8 @@
 /* ============================================================================
  * app.js — wires data + sim + live API into the page.
+ *
+ * View: team-agnostic. It tracks WHO is most likely to appear in the Vancouver
+ * Round-of-16 game (Match 96), what each contender needs, and the key factors.
  * ========================================================================== */
 const D = window.WC;          // seed data (mutable RESULTS)
 const SIM_N = 20000;
@@ -31,73 +34,98 @@ function gamesPlayedIn(group) {
 
 /* ---- Rendering ----------------------------------------------------------- */
 function renderHeadline(sim) {
-  $("headlinePct").textContent = pctStr(sim.pYourTeamReachesVancouver);
+  const top = sim.topMatchups[0];
+  if (top) {
+    $("headlineMatchup").textContent = `${top.a} vs ${top.b}`;
+    $("headlinePct").textContent = pctStr(top.p);
+  }
   $("simN").textContent = sim.N.toLocaleString();
 }
 
-function renderScenario(sim) {
-  const stand = currentStandings(D.YOUR_GROUP);
-  const me = stand.find(s => s.team === D.YOUR_TEAM);
-  const pos = stand.indexOf(me) + 1;
-  const played = me.p;
-  const total = 3; // each team plays 3 group games
-
-  // Biggest rival in group by Elo (excluding Portugal)
-  const rival = D.GROUPS[D.YOUR_GROUP]
-    .filter(t => t !== D.YOUR_TEAM)
-    .sort((a, b) => D.TEAMS[b] - D.TEAMS[a])[0];
-
-  const winGroup = pctStr(sim.pYourTeamWinsGroup);
-  const winR32 = pctStr(sim.pYourTeamWinsR32GivenGroup);
-  const net = pctStr(sim.pYourTeamReachesVancouver);
-
-  $("scenarioList").innerHTML = `
-    <li><b>Finish 1st in Group K</b> — currently <span class="pill">${winGroup}</span> likely.
-        <span class="muted">2nd place isn't enough: the runner-up is routed to Toronto → Dallas, away from your game.</span></li>
-    <li><b>Win the Round of 32 game</b> in Kansas City (Jul 3) vs a third-place qualifier —
-        <span class="pill">${winR32}</span> likely <i>if</i> they top the group.</li>
-    <li><b>→ Net result:</b> <span class="pill">${net}</span> chance Portugal is in your Vancouver seat.</li>
-  `;
-
-  $("scenarioNote").innerHTML =
-    `Right now Portugal sit <b>${ordinal(pos)}</b> in Group K with <b>${me.pts} pt${me.pts === 1 ? "" : "s"}</b> ` +
-    `after ${played}/${total} games. Their toughest group rival is <b>${rival}</b> ` +
-    `(Elo ${D.TEAMS[rival]} vs Portugal ${D.TEAMS[D.YOUR_TEAM]}).`;
-}
-
-function renderSide(elId, rows, highlightTeam) {
-  const max = Math.max(0.01, ...rows.map(r => r.pReachVancouver));
+/* One side of the bracket: ranked list of every team that could fill it. */
+function renderSide(elId, side) {
+  const rows = side.rows;
+  const max = Math.max(0.01, ...rows.map(r => r.pReach));
   $(elId).innerHTML = rows.map(r => {
-    const you = r.team === highlightTeam ? " you" : "";
-    const w = Math.round((r.pReachVancouver / max) * 100);
+    const w = Math.round((r.pReach / max) * 100);
+    const tag = r.viaThird
+      ? `<span class="sub wild">· 3rd-place wildcard (Grp ${r.fromGroup})</span>`
+      : `<span class="sub">· Group ${r.fromGroup} winner</span>`;
     return `
-      <div class="prob-row${you}">
+      <div class="prob-row${r.viaThird ? " wildrow" : ""}">
         <div class="fill" style="width:${w}%"></div>
         <div class="row-inner">
-          <div><span class="team">${r.team}</span>
-               <span class="sub">· wins group ${pctStr(r.pWinGroup)}</span></div>
-          <div class="pct">${pctStr(r.pReachVancouver)}</div>
+          <div><span class="team">${r.team}</span> ${tag}</div>
+          <div class="pct">${pctStr(r.pReach)}</div>
         </div>
       </div>`;
   }).join("");
 }
 
-function renderSpoilers(sim) {
-  if (!sim.spoilers.length) { $("spoilerNote").textContent = ""; return; }
-  const list = sim.spoilers.slice(0, 5)
-    .map(s => `${s.team} ${pctStr(s.pReachVancouver)}`).join(" · ");
-  $("spoilerNote").innerHTML =
-    `<b>Wildcard:</b> a best-third-place team can knock out a group winner in the Round of 32 ` +
-    `and take a Vancouver slot instead — most likely: ${list}.`;
+/* "What needs to happen" — generated per side from current state + sim. */
+function sideNeedItem(side, sideLabel) {
+  const w = side.projWinner;                                  // {team, p, elo}
+  const winnerRow = side.rows.find(r => r.team === w.team) || { pReach: 0 };
+  const clinched = w.p > 0.999;
+  const r32 = side.r32;
+  const groupState = clinched
+    ? `<b>${w.team}</b> has clinched Group ${side.feederGroup}`
+    : `<b>${w.team}</b> leads Group ${side.feederGroup} to win it <span class="pill">${pctStr(w.p)}</span>`;
+  const pThird = 1 - winnerRow.pReach;
+  const wildNote = pThird > 0.02
+    ? ` A best-third-place team takes this slot instead <span class="pill">${pctStr(pThird)}</span> of the time.`
+    : "";
+  return `<li><b>${sideLabel} →</b> ${groupState}, then must win the Round of 32
+      (${r32.venue}, Jul ${r32.date.slice(-2)}) vs a best-third qualifier.
+      Net: <span class="pill">${pctStr(winnerRow.pReach)}</span> to reach Match 96.${wildNote}</li>`;
+}
+
+function renderWhatNeeds(sim) {
+  $("scenarioList").innerHTML =
+    sideNeedItem(sim.m85, "Vancouver R32 side") +
+    sideNeedItem(sim.m87, "Kansas City side");
+
+  const top3 = sim.topMatchups.slice(0, 3)
+    .map(m => `${m.a} vs ${m.b} <span class="muted">(${pctStr(m.p)})</span>`).join(" · ");
+  $("scenarioNote").innerHTML =
+    `Most likely Match 96 pairings: ${top3}. No single matchup is a lock — ` +
+    `the field is split across both sides' R32 games.`;
+}
+
+/* "Key factors" — what actually swings the outcome. */
+function renderKeyFactors(sim) {
+  const wA = sim.m85.rows.find(r => r.team === sim.m85.projWinner.team) || { pReach: 0 };
+  const wB = sim.m87.rows.find(r => r.team === sim.m87.projWinner.team) || { pReach: 0 };
+  const pBothFav = wA.pReach * wB.pReach;        // sides are independent
+  const pUpset = 1 - pBothFav;
+
+  // Biggest wildcard threats across both sides.
+  const wilds = [...sim.m85.rows, ...sim.m87.rows]
+    .filter(r => r.viaThird)
+    .sort((a, b) => b.pReach - a.pReach)
+    .slice(0, 4)
+    .map(r => `${r.team} (Grp ${r.fromGroup}) <span class="muted">${pctStr(r.pReach)}</span>`)
+    .join(" · ");
+
+  const items = [
+    `<b>The two favourites:</b> ${sim.m85.projWinner.team} (Vancouver side) and
+       ${sim.m87.projWinner.team} (Kansas City side) are the front-runners —
+       but both still have to win an R32 knockout to actually appear.`,
+    `<b>Wildcard risk:</b> there's a <span class="pill">${pctStr(pUpset)}</span> chance at least one
+       of those favourites is knocked out in the R32 by a best-third-place team, changing the matchup.`,
+    `<b>Biggest spoilers to watch:</b> ${wilds || "none of note"}.`,
+    `<b>Why it stays open:</b> each side is a single-elimination R32 game (no second chances),
+       and the third-place qualifiers aren't fixed until every group finishes.`,
+  ];
+  $("keyFactors").innerHTML = items.map(t => `<li>${t}</li>`).join("");
 }
 
 function renderStandings(group, elId) {
   const stand = currentStandings(group);
   const played = gamesPlayedIn(group);
   const rows = stand.map((s, i) => {
-    const youCls = s.team === D.YOUR_TEAM ? " you" : "";
     const qualCls = i < 2 ? " qual" : "";
-    return `<tr class="${youCls}">
+    return `<tr>
       <td class="${i === 0 ? "pos1" : ""}">${i + 1}</td>
       <td class="${qualCls}">${s.team}</td>
       <td>${s.p}</td><td>${s.w}-${s.d}-${s.l}</td>
@@ -125,7 +153,7 @@ function existingResult(group, a, b) {
     ((r.home === a && r.away === b) || (r.home === b && r.away === a)));
 }
 function buildEdit(group, elId) {
-  $(elId).innerHTML = pairings(group).map(([a, b], i) => {
+  $(elId).innerHTML = pairings(group).map(([a, b]) => {
     const r = existingResult(group, a, b);
     const ha = r ? (r.home === a ? r.hg : r.ag) : "";
     const hb = r ? (r.home === a ? r.ag : r.hg) : "";
@@ -139,11 +167,9 @@ function buildEdit(group, elId) {
   }).join("");
 }
 function applyEdits() {
-  // Remove existing manual results for K & B, then read inputs.
   document.querySelectorAll(".edit-game").forEach(row => {
     const g = row.dataset.g, a = row.dataset.a, b = row.dataset.b;
     const sa = row.querySelector(".sa").value, sb = row.querySelector(".sb").value;
-    // drop any existing
     D.RESULTS = D.RESULTS.filter(r => !(r.group === g &&
       ((r.home === a && r.away === b) || (r.home === b && r.away === a))));
     if (sa !== "" && sb !== "") {
@@ -153,17 +179,14 @@ function applyEdits() {
   recompute();
 }
 
-/* ---- Helpers ------------------------------------------------------------- */
-function ordinal(n) { return ["", "1st", "2nd", "3rd", "4th"][n] || n + "th"; }
-
 /* ---- Run + render -------------------------------------------------------- */
 function recompute() {
   const sim = window.WCsim.runSim(D, SIM_N);
   renderHeadline(sim);
-  renderScenario(sim);
-  renderSide("yourSide", sim.yourSide, D.YOUR_TEAM);
-  renderSide("opponentSide", sim.opponentSide, null);
-  renderSpoilers(sim);
+  renderWhatNeeds(sim);
+  renderKeyFactors(sim);
+  renderSide("m85Side", sim.m85);
+  renderSide("m87Side", sim.m87);
   renderStandings(D.YOUR_GROUP, "groupKTable");
   renderStandings(D.OPPONENT_GROUP, "groupBTable");
   buildEdit(D.YOUR_GROUP, "editK");

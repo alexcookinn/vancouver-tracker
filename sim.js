@@ -136,6 +136,9 @@ function runSim(data, N = 20000) {
 
   // Tally counters
   const reachVan = {};      // team -> times in Vancouver game (either slot)
+  const reachM87 = {};      // team -> times filling the Kansas City (Group K) slot
+  const reachM85 = {};      // team -> times filling the Vancouver R32 (Group B) slot
+  const matchupCount = {};  // "teamA ||| teamB" (sorted) -> times that exact Match 96
   const winGroup = {};      // team -> times won its OWN group
   const wonGroupAndR32 = {}; // team -> times (won group AND won its R32 feeder)
   let yourGroupWins = 0, yourReachVan = 0;
@@ -189,6 +192,12 @@ function runSim(data, N = 20000) {
     // The two teams in the Vancouver game:
     inc(reachVan, kAdvances.team);
     inc(reachVan, bAdvances.team);
+    inc(reachM87, kAdvances.team);   // Kansas City side
+    inc(reachM85, bAdvances.team);   // Vancouver R32 side
+    const mk = kAdvances.team < bAdvances.team
+      ? kAdvances.team + " ||| " + bAdvances.team
+      : bAdvances.team + " ||| " + kAdvances.team;
+    inc(matchupCount, mk);
     if (kAdvances.team === YOUR_TEAM) yourReachVan++;
 
     if (kWinner.team === kAdvances.team) inc(wonGroupAndR32, kWinner.team);
@@ -203,6 +212,30 @@ function runSim(data, N = 20000) {
     pWinGroup: pct(winGroup[t]),
     pReachVancouver: pct(reachVan[t]),
   })).sort((a, b) => b.pReachVancouver - a.pReachVancouver);
+
+  // Which team fills each side of Match 96 — ranked across ALL candidates
+  // (the group winner plus any third-place team that could win the feeder R32).
+  const groupOf = {};
+  for (const g of groupLetters) for (const t of GROUPS[g]) groupOf[t] = g;
+  const buildSide = (counts, feederGroup) => Object.keys(counts).map(t => ({
+    team: t,
+    elo: elo[t],
+    pReach: pct(counts[t]),          // P(this team is the one in Match 96 via this side)
+    pWinGroup: pct(winGroup[t]),
+    fromGroup: groupOf[t],
+    viaThird: !GROUPS[feederGroup].includes(t),  // true = best-third-place wildcard
+  })).sort((a, b) => b.pReach - a.pReach);
+
+  // Most likely group winner of each feeder group (and how locked it is).
+  const projWinner = (g) => GROUPS[g]
+    .map(t => ({ team: t, p: pct(winGroup[t]), elo: elo[t] }))
+    .sort((a, b) => b.p - a.p)[0];
+
+  // Most likely exact Match 96 pairings.
+  const topMatchups = Object.keys(matchupCount).map(k => {
+    const [a, b] = k.split(" ||| ");
+    return { a, b, p: pct(matchupCount[k]) };
+  }).sort((x, y) => y.p - x.p);
 
   // Spoiler third-place teams that could steal YOUR slot (win M87 over K winner)
   // and the opponent slot — captured already in reachVan for non-group teams.
@@ -221,6 +254,21 @@ function runSim(data, N = 20000) {
     yourSide: tableFor(YOUR_GROUP),       // Group K teams
     opponentSide: tableFor(OPPONENT_GROUP), // Group B teams
     spoilers,                              // third-place teams that could appear
+
+    // --- General "who reaches Match 96" view (team-agnostic) ---
+    m87: {                                 // Kansas City side (feeds Match 96)
+      feederGroup: YOUR_GROUP,
+      r32: kSlot,
+      projWinner: projWinner(YOUR_GROUP),
+      rows: buildSide(reachM87, YOUR_GROUP),
+    },
+    m85: {                                 // Vancouver R32 side (feeds Match 96)
+      feederGroup: OPPONENT_GROUP,
+      r32: bSlot,
+      projWinner: projWinner(OPPONENT_GROUP),
+      rows: buildSide(reachM85, OPPONENT_GROUP),
+    },
+    topMatchups,
   };
 }
 

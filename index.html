@@ -3,17 +3,17 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Vancouver R16 Tracker — Will Portugal play my game?</title>
+  <title>Vancouver R16 Tracker — Who will be in my game?</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <main>
     <header class="hero">
       <div class="hero-tag">Match 96 · Round of 16 · BC Place, Vancouver · Tue Jul 7, 2026</div>
-      <h1>Will <span class="accent">Portugal</span> be in my game?</h1>
+      <h1>Who will be in <span class="accent">my game</span>?</h1>
       <div class="headline">
-        <div class="big-pct" id="headlinePct">—</div>
-        <div class="big-label">chance Portugal reaches your Vancouver seat</div>
+        <div class="big-matchup" id="headlineMatchup">—</div>
+        <div class="big-label">most likely Match 96 — <span class="big-pct" id="headlinePct">—</span> probability</div>
       </div>
       <div class="status-bar">
         <span id="dataSource" class="chip">loading…</span>
@@ -32,13 +32,19 @@
       <p class="note" id="scenarioNote"></p>
     </section>
 
-    <!-- Bracket -->
+    <!-- Key factors -->
     <section class="card">
-      <h2>The two paths into your game</h2>
+      <h2>Key factors</h2>
+      <ul id="keyFactors" class="factors"><li>Loading…</li></ul>
+    </section>
+
+    <!-- Bracket: who fills each side of Match 96 -->
+    <section class="card">
+      <h2>Who reaches Match 96 — by side</h2>
       <div class="bracket">
         <div class="side">
-          <div class="side-title">Portugal's side <span class="muted">· Group K → KC (Jul 3) → Vancouver</span></div>
-          <div id="yourSide" class="prob-list"></div>
+          <div class="side-title">Vancouver R32 side <span class="muted">· Group B winner → R32 Vancouver (Jul 2) → Match 96</span></div>
+          <div id="m85Side" class="prob-list"></div>
         </div>
 
         <div class="match-node">
@@ -52,21 +58,21 @@
         </div>
 
         <div class="side">
-          <div class="side-title">Opponent's side <span class="muted">· Group B → Vancouver (Jul 2) → Vancouver</span></div>
-          <div id="opponentSide" class="prob-list"></div>
+          <div class="side-title">Kansas City side <span class="muted">· Group K winner → R32 Kansas City (Jul 3) → Match 96</span></div>
+          <div id="m87Side" class="prob-list"></div>
         </div>
       </div>
-      <p class="note" id="spoilerNote"></p>
+      <p class="note">Each side is filled by its group winner <i>or</i> a best-third-place team that beats them in the Round of 32.</p>
     </section>
 
     <!-- Live standings -->
     <section class="grid2">
       <div class="card">
-        <h2>Group K <span class="muted">— live standings</span></h2>
+        <h2>Group K <span class="muted">— feeds Kansas City side</span></h2>
         <div id="groupKTable" class="standings"></div>
       </div>
       <div class="card">
-        <h2>Group B <span class="muted">— live standings</span></h2>
+        <h2>Group B <span class="muted">— feeds Vancouver R32 side</span></h2>
         <div id="groupBTable" class="standings"></div>
       </div>
     </section>
@@ -86,8 +92,9 @@
       <p class="note">
         Probabilities from a Monte Carlo simulation (<span id="simN">—</span> runs) using
         approximate Elo ratings — they're an informed estimate, not a guarantee.
-        Bracket routing is verified for WC2026: the Group K <b>winner</b> goes to Kansas City (Match 87),
-        and only that winner can reach your Vancouver game. The Group K runner-up goes to Toronto → Dallas instead.
+        Bracket routing is verified for WC2026: Match 96 (Vancouver, Jul 7) is the winner of the
+        Vancouver R32 (Match 85, Group B winner vs a best third) against the winner of the
+        Kansas City R32 (Match 87, Group K winner vs a best third).
         Edit team ratings, rosters, or results in <code>data.js</code>.
       </p>
     </footer>
