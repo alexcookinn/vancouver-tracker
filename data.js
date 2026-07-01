@@ -142,15 +142,17 @@ let RESULTS = [
 const BRACKET = {
   finalMatch: { id: 96, name: "Round of 16", venue: "BC Place, Vancouver", date: "2026-07-07" },
   sides: {
-    // Portugal's side
+    // Kansas City side. R32 draw is CONFIRMED: Colombia (Group K winner) vs Ghana.
     K: {
       r32: { id: 87, venue: "Kansas City", date: "2026-07-03",
-             groupWinner: "K", thirdFrom: ["D", "E", "I", "J", "L"] },
+             groupWinner: "K", thirdFrom: ["D", "E", "I", "J", "L"],
+             opponent: "Ghana" },
     },
-    // Opponent side
+    // Vancouver R32 side. R32 draw is CONFIRMED: Switzerland (Group B winner) vs Algeria.
     B: {
       r32: { id: 85, venue: "Vancouver", date: "2026-07-02",
-             groupWinner: "B", thirdFrom: ["E", "F", "G", "I", "J"] },
+             groupWinner: "B", thirdFrom: ["E", "F", "G", "I", "J"],
+             opponent: "Algeria" },
     },
   },
 };

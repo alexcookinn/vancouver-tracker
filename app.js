@@ -66,8 +66,16 @@ function renderSide(elId, side) {
 function sideNeedItem(side, sideLabel) {
   const w = side.projWinner;                                  // {team, p, elo}
   const winnerRow = side.rows.find(r => r.team === w.team) || { pReach: 0 };
-  const clinched = w.p > 0.999;
   const r32 = side.r32;
+  if (r32.opponent) {
+    // R32 draw is confirmed: a single, locked knockout game.
+    const oppRow = side.rows.find(r => r.team === r32.opponent) || { pReach: 0 };
+    return `<li><b>${sideLabel} — ${w.team} vs ${r32.opponent}</b>
+        (${r32.venue}, Jul ${r32.date.slice(-2)}): winner goes to Match 96.
+        <span class="pill">${pctStr(winnerRow.pReach)}</span> ${w.team} ·
+        <span class="pill">${pctStr(oppRow.pReach)}</span> ${r32.opponent}.</li>`;
+  }
+  const clinched = w.p > 0.999;
   const groupState = clinched
     ? `<b>${w.team}</b> has clinched Group ${side.feederGroup}`
     : `<b>${w.team}</b> leads Group ${side.feederGroup} to win it <span class="pill">${pctStr(w.p)}</span>`;
@@ -94,28 +102,47 @@ function renderWhatNeeds(sim) {
 
 /* "Key factors" — what actually swings the outcome. */
 function renderKeyFactors(sim) {
+  const locked = sim.m85.r32.opponent && sim.m87.r32.opponent;
   const wA = sim.m85.rows.find(r => r.team === sim.m85.projWinner.team) || { pReach: 0 };
   const wB = sim.m87.rows.find(r => r.team === sim.m87.projWinner.team) || { pReach: 0 };
-  const pBothFav = wA.pReach * wB.pReach;        // sides are independent
-  const pUpset = 1 - pBothFav;
 
-  // Biggest wildcard threats across both sides.
+  if (locked) {
+    const oppA = sim.m85.rows.find(r => r.team === sim.m85.r32.opponent) || { pReach: 0 };
+    const oppB = sim.m87.rows.find(r => r.team === sim.m87.r32.opponent) || { pReach: 0 };
+    const pBothFav = wA.pReach * wB.pReach;
+    const items = [
+      `<b>The draw is set — 4 teams, 2 games.</b> Match 96 is the winner of
+         <b>${sim.m85.projWinner.team} vs ${sim.m85.r32.opponent}</b> (Vancouver, Jul 2) against the winner of
+         <b>${sim.m87.projWinner.team} vs ${sim.m87.r32.opponent}</b> (Kansas City, Jul 3). No wildcards left.`,
+      `<b>Vancouver R32 is the tighter game:</b> ${sim.m85.projWinner.team}
+         <span class="pill">${pctStr(wA.pReach)}</span> vs ${sim.m85.r32.opponent}
+         <span class="pill">${pctStr(oppA.pReach)}</span> — close to a coin flip.`,
+      `<b>Kansas City R32 is more lopsided:</b> ${sim.m87.projWinner.team}
+         <span class="pill">${pctStr(wB.pReach)}</span> vs ${sim.m87.r32.opponent}
+         <span class="pill">${pctStr(oppB.pReach)}</span>.`,
+      `<b>Chalk result:</b> both favourites winning gives ${sim.m87.projWinner.team} vs
+         ${sim.m85.projWinner.team} — the single most likely Match 96 at
+         <span class="pill">${pctStr(pBothFav)}</span>.`,
+    ];
+    $("keyFactors").innerHTML = items.map(t => `<li>${t}</li>`).join("");
+    return;
+  }
+
+  const pUpset = 1 - wA.pReach * wB.pReach;
   const wilds = [...sim.m85.rows, ...sim.m87.rows]
     .filter(r => r.viaThird)
     .sort((a, b) => b.pReach - a.pReach)
     .slice(0, 4)
     .map(r => `${r.team} (Grp ${r.fromGroup}) <span class="muted">${pctStr(r.pReach)}</span>`)
     .join(" · ");
-
   const items = [
-    `<b>The two favourites:</b> ${sim.m85.projWinner.team} (Vancouver side) and
-       ${sim.m87.projWinner.team} (Kansas City side) are the front-runners —
-       but both still have to win an R32 knockout to actually appear.`,
+    `<b>The two favourites:</b> ${sim.m85.projWinner.team} and ${sim.m87.projWinner.team}
+       are the front-runners — but both still have to win an R32 knockout to actually appear.`,
     `<b>Wildcard risk:</b> there's a <span class="pill">${pctStr(pUpset)}</span> chance at least one
-       of those favourites is knocked out in the R32 by a best-third-place team, changing the matchup.`,
+       favourite is knocked out in the R32 by a best-third-place team, changing the matchup.`,
     `<b>Biggest spoilers to watch:</b> ${wilds || "none of note"}.`,
-    `<b>Why it stays open:</b> each side is a single-elimination R32 game (no second chances),
-       and the third-place qualifiers aren't fixed until every group finishes.`,
+    `<b>Why it stays open:</b> each side is a single-elimination R32 game, and the third-place
+       qualifiers aren't fixed until every group finishes.`,
   ];
   $("keyFactors").innerHTML = items.map(t => `<li>${t}</li>`).join("");
 }

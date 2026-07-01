@@ -148,6 +148,17 @@ function runSim(data, N = 20000) {
   const kSlot = BRACKET.sides[YOUR_GROUP].r32;     // M87
   const bSlot = BRACKET.sides[OPPONENT_GROUP].r32; // M85
 
+  // team -> its group letter (used to label a confirmed R32 opponent)
+  const groupOf = {};
+  for (const g of groupLetters) for (const t of GROUPS[g]) groupOf[t] = g;
+
+  // If the R32 draw is confirmed (slot.opponent set), we use that exact team
+  // instead of simulating which best-third-place team gets assigned.
+  const fixedOpp = (slot) => slot.opponent
+    ? { team: slot.opponent, elo: elo[slot.opponent], group: groupOf[slot.opponent] }
+    : null;
+  const kFixed = fixedOpp(kSlot), bFixed = fixedOpp(bSlot);
+
   for (let n = 0; n < N; n++) {
     const winners = {}, runners = {}, thirds = {};
     const allThirds = [];
@@ -167,24 +178,23 @@ function runSim(data, N = 20000) {
     const qualGroups = top8.map(t => t.group);
     const assign = assignThirds(qualGroups);
 
-    // --- Portugal's R32 feeder (M87): Group K winner vs assigned third ---
+    // --- Kansas City R32 feeder (M87): Group K winner vs its opponent ---
+    // Opponent is the confirmed draw (kFixed) if set, else a simulated third.
     const kWinner = winners[kSlot.groupWinner];
-    const kThirdGroup = assign[kSlot.groupWinner];
-    const kThird = top8.find(t => t.group === kThirdGroup);
+    const kOpp = kFixed || top8.find(t => t.group === assign[kSlot.groupWinner]);
     let kAdvances;
-    if (kThird) {
-      kAdvances = Math.random() < eloWinProb(kWinner.elo, kThird.elo) ? kWinner : kThird;
+    if (kOpp) {
+      kAdvances = Math.random() < eloWinProb(kWinner.elo, kOpp.elo) ? kWinner : kOpp;
     } else {
       kAdvances = kWinner; // (defensive) shouldn't occur
     }
 
-    // --- Opponent R32 feeder (M85): Group B winner vs assigned third ---
+    // --- Vancouver R32 feeder (M85): Group B winner vs its opponent ---
     const bWinner = winners[bSlot.groupWinner];
-    const bThirdGroup = assign[bSlot.groupWinner];
-    const bThird = top8.find(t => t.group === bThirdGroup);
+    const bOpp = bFixed || top8.find(t => t.group === assign[bSlot.groupWinner]);
     let bAdvances;
-    if (bThird) {
-      bAdvances = Math.random() < eloWinProb(bWinner.elo, bThird.elo) ? bWinner : bThird;
+    if (bOpp) {
+      bAdvances = Math.random() < eloWinProb(bWinner.elo, bOpp.elo) ? bWinner : bOpp;
     } else {
       bAdvances = bWinner;
     }
@@ -213,10 +223,7 @@ function runSim(data, N = 20000) {
     pReachVancouver: pct(reachVan[t]),
   })).sort((a, b) => b.pReachVancouver - a.pReachVancouver);
 
-  // Which team fills each side of Match 96 — ranked across ALL candidates
-  // (the group winner plus any third-place team that could win the feeder R32).
-  const groupOf = {};
-  for (const g of groupLetters) for (const t of GROUPS[g]) groupOf[t] = g;
+  // Which team fills each side of Match 96 — ranked across all candidates.
   const buildSide = (counts, feederGroup) => Object.keys(counts).map(t => ({
     team: t,
     elo: elo[t],
